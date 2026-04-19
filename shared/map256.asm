@@ -5,6 +5,7 @@
         icl "OS"
         icl "PIA"
         icl "POKEY"
+        icl "internal"
 
 
         osgraph = $ef9c ;<A
