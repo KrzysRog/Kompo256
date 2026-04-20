@@ -2,7 +2,7 @@
 
 ;constants
         player_char     = INT_I
-        alien_char      = INT_AT+128
+        alien_char      = INT_QUESTION+128
         laser_char      = INT_COLON
         human_char      = INT_A
         laser_cnt       = 4
@@ -62,6 +62,7 @@ game_loop
         jsr move_char
         lda cur_vector
         beq no_player_move     ;if zero, no movement
+        ;!!!!!!! is this check needed? new_pos now updated in move_char
         lda new_pos
         sta player_pos   ;update player position
 
@@ -85,6 +86,7 @@ no_player_move
         lda #laser_char
         sta cur_char     ;set current char to laser char
         jsr move_char
+        ;!!!!!!!!!!!!check human shot missing
         lda cur_vector
         beq no_shoot     ;if zero, no shooting
         ldy prev_pos     ;get laser start position
@@ -209,6 +211,8 @@ vectors
         ; 11 15 7
         ; 9  13 5
         ;   5      6      7   8  9      10     11  12 13   14   15
-        dta +1+32, +1-32, +1, 0, -1+32, -1-32, -1, 0, +32, -32, 0
+        dta +1+32, +1-32, +1, 0, -1+32, -1-32, -1, 0, +32, -32
+        ;0excluded assuming clean memory
+        ;dta 0
 
         end
