@@ -32,11 +32,10 @@ new_game
         
 ;set aliens
         ldx #alien_cnt+1        ;alien loop + 1 human
-alien_setup
-        lda random
-        tay
-        sta human_pos-1,x
         lda #alien_char
+alien_setup
+        ldy random
+        sty human_pos-1,x
         sta (88),y
         dex
         bne alien_setup
@@ -60,8 +59,8 @@ game_loop
         lda #player_char 
         sta cur_char     ;set current char to player char
         jsr move_char
-        lda cur_vector
-        beq no_player_move     ;if zero, no movement
+        ;lda cur_vector
+        ;beq no_player_move     ;if zero, no movement
         ;!!!!!!! is this check needed? new_pos now updated in move_char
         lda new_pos
         sta player_pos   ;update player position
@@ -81,6 +80,37 @@ no_player_move
 ;------------------
 ;shooting
 ;------------------
+
+;prepare input for move_char
+        mva STICK1 tmpx
+        mva player_pos new_pos
+        mva #laser_char cur_char
+        mva #laser_cnt laser_timer
+
+laser_loop
+        lda:cmp:req 20  ;timer wait
+        sta COLPF3      ;flashing alien
+        ldx tmpx
+        cpx #$0f
+        beq end_laser_move      ;skip if no jostick move
+        ldy new_pos
+        jsr move_char
+        lda prev_char
+        cmp #human_char
+        beq game_over_lose   ;if laser hit human, lose
+        jsr keyclk           ;laser sound
+        ldy player_pos
+        lda #player_char
+        sta (88),y      ;restore player char at old position broken by laser
+        lda new_pos
+        sta prev_pos    ;next laser count from new position
+        dec laser_timer
+        bne laser_loop   ;keep moving laser until timer runs out
+        lda #0
+        ldy new_pos
+        sta (88),y      ;erase laser at last position
+
+/*
         ldy player_pos  ;laser starts at player position
         ldx STICK1
         lda #laser_char
@@ -97,9 +127,7 @@ no_player_move
 
 laser_loop
         ;jsr wait20
-        lda 20
-        cmp 20
-        beq *-2
+        lda:cmp:req 20
 
         lda new_pos
         sta prev_pos
@@ -117,11 +145,10 @@ laser_loop
 
 no_shoot
         ;jsr wait20
-        lda 20
-        cmp 20
-        beq *-2
+        lda:cmp:req 20
         sta colpf3
-
+*/
+end_laser_move
 ;----------------
 ;alien movement
 ;----------------
@@ -196,14 +223,6 @@ move_char_short
         sta (88),y      ;draw char at new position
 no_move
         rts
-/*
-wait20 
-        lda 20
-        cmp 20
-        beq *-2
-        sta colpf3
-        rts
-*/
 
 vectors
         dta 0,0,0,0,0
