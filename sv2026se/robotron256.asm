@@ -59,9 +59,6 @@ game_loop
         lda #player_char 
         sta cur_char     ;set current char to player char
         jsr move_char
-        ;lda cur_vector
-        ;beq no_player_move     ;if zero, no movement
-        ;!!!!!!! is this check needed? new_pos now updated in move_char
         lda new_pos
         sta player_pos   ;update player position
 
@@ -70,12 +67,7 @@ game_loop
         bmi game_over_lose   ;if player moved onto alien, lose, aliens are negitive
         cmp #human_char
         beq game_over_win    ;if player moved onto human, win
-/*        
-wait0
-        lda STICK0
-        cmp #15
-        bne wait0
-        */
+
 no_player_move
 ;------------------
 ;shooting
@@ -110,44 +102,6 @@ laser_loop
         ldy new_pos
         sta (88),y      ;erase laser at last position
 
-/*
-        ldy player_pos  ;laser starts at player position
-        ldx STICK1
-        lda #laser_char
-        sta cur_char     ;set current char to laser char
-        jsr move_char
-        ;!!!!!!!!!!!!check human shot missing
-        lda cur_vector
-        beq no_shoot     ;if zero, no shooting
-        ldy prev_pos     ;get laser start position
-        lda #player_char
-        sta (88),y      ;restore player char at old position broken by laser
-        lda #laser_cnt
-        sta laser_timer  ;reset laser timer
-
-laser_loop
-        ;jsr wait20
-        lda:cmp:req 20
-
-        lda new_pos
-        sta prev_pos
-        jsr move_char_short
-        lda prev_char
-        cmp #human_char
-        beq game_over_lose   ;if laser hit human, lose
-
-        jsr keyclk
-        dec laser_timer
-        bne laser_loop   ;keep moving laser until timer runs out
-        ldy new_pos
-        lda #0
-        sta (88),y      ;erase laser at last position
-
-no_shoot
-        ;jsr wait20
-        lda:cmp:req 20
-        sta colpf3
-*/
 end_laser_move
 ;----------------
 ;alien movement
@@ -217,11 +171,12 @@ move_char_short
         adc cur_vector    ;A=new position
         sta new_pos     ;save new position
         tay             ;Y=current position
+no_move
         lda (88),y      ;get char at new position
         sta prev_char   ;save previous char for checking hits
         lda cur_char
         sta (88),y      ;draw char at new position
-no_move
+;no_move
         rts
 
 vectors
