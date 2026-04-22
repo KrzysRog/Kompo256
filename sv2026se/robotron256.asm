@@ -1,10 +1,10 @@
         icl "../shared/map256"
 
 ;constants
-        player_char     = INT_I
-        alien_char      = INT_QUESTION+128
-        laser_char      = INT_COLON
-        human_char      = INT_A
+        player_char     = INTERNAL_UPPER_I
+        alien_char      = INTERNAL_QUESTION+128
+        laser_char      = INTERNAL_COLON
+        human_char      = INTERNAL_UPPER_A
         laser_cnt       = 4
         alien_cnt       = 16
 

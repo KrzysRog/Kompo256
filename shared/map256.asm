@@ -5,8 +5,6 @@
         icl "OS"
         icl "PIA"
         icl "POKEY"
-        icl "internal"
-
 
         osgraph = $ef9c ;<A
         osplot = $f1d8  ;<atachr
@@ -15,11 +13,8 @@
         locate = $f18f  ;>A
 
         convrt = $f5ac
-        ;adress = $64
-        ;atachr = $2fb
         bell = $f556
         keyclk = $f983
-        ;kgetch = $f302
         egetch = $f24a
         kgetch = $f302
     
