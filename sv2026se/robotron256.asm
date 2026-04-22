@@ -63,7 +63,6 @@ game_loop
         sta player_pos   ;update player position
 
         lda prev_char        ;check where the player went
-        ;cmp #alien_char
         bmi game_over_lose   ;if player moved onto alien, lose, aliens are negitive
         cmp #human_char
         beq game_over_win    ;if player moved onto human, win
@@ -176,7 +175,6 @@ no_move
         sta prev_char   ;save previous char for checking hits
         lda cur_char
         sta (88),y      ;draw char at new position
-;no_move
         rts
 
 vectors
