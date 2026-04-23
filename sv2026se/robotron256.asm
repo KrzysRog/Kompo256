@@ -3,10 +3,11 @@
 ;constants
         player_char     = INTERNAL_UPPER_I
         alien_char      = INTERNAL_QUESTION+128
+        alien_flip_mask = %00100000
         laser_char      = INTERNAL_COLON
         human_char      = INTERNAL_UPPER_A
         laser_cnt       = 4
-        alien_cnt       = 16
+        alien_cnt       = 20
 
 ;memory locations
         player_pos      = $80
@@ -34,6 +35,7 @@ new_game
         ldx #alien_cnt+1        ;alien loop + 1 human
         lda #alien_char
 alien_setup
+        eor #alien_flip_mask
         ldy random
         sty human_pos-1,x
         sta (88),y
@@ -110,16 +112,14 @@ end_laser_move
         lda #alien_cnt-1
         sta tmpx
 alien_move_loop
-        lda random
-        and #$1f
-        bne next_alien    ;only move some of the aliens each frame
         ldx tmpx
         ldy alien_pos,x   ;Y=alien position
         lda (88),y        ;char at alien position
-        beq next_alien    ;if zero, don't move, alien not there
-        lda random
-        and #$0f
-        tax               ;X=vector index
+        cmp #alien_char   ;alien type which moves
+        bne next_alien    ;if zero, don't move, alien not there
+        ldx random
+        cpx #$10
+        bpl next_alien    ;only move some of the aliens each frame
         jsr move_char
 
         lda prev_char
