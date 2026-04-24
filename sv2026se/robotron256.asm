@@ -35,12 +35,12 @@ new_game
         ldx #alien_cnt+1        ;alien loop + 1 human
         lda #alien_char
 alien_setup
-        eor #alien_flip_mask
+        eor #alien_flip_mask    ;every second alien is a static mine
         ldy random
-        sty human_pos-1,x
-        sta (88),y
+        sty human_pos-1,x       ;update alien pos in the array
+        sta (88),y              ;draw alien at pos
         dex
-        bne alien_setup
+        bne alien_setup         ;use last position for human
         lda #human_char
         sta (88),y
 
@@ -158,10 +158,6 @@ move_char
         lda vectors,x   ;get vector
         sta cur_vector  ;save current vector
         beq no_move     ;if zero, no movement
-;        lda #0
-;        sta (88),y      ;overwrite char at old position with blank
-move_char_short
-;uses cur_vector, prev_pos
         ldy prev_pos
         lda #0
         sta (88),y      ;erase char at old position
@@ -184,7 +180,7 @@ vectors
         ; 9  13 5
         ;   5      6      7   8  9      10     11  12 13   14   15
         dta +1+32, +1-32, +1, 0, -1+32, -1-32, -1, 0, +32, -32
-        ;0excluded assuming clean memory
+        ;0 excluded assuming clean memory
         ;dta 0
 
         end
