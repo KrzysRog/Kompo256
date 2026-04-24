@@ -1,10 +1,10 @@
         icl "../shared/map256"
 
 ;constants
-        player_char     = INTERNAL_UPPER_I
+        player_char     = INTERNAL_UPARROW
         alien_char      = INTERNAL_QUESTION+128
         alien_flip_mask = %00100000
-        laser_char      = INTERNAL_COLON
+        laser_char      = INTERNAL_SINGLEQUOTE
         human_char      = INTERNAL_UPPER_A
         laser_cnt       = 4
         alien_cnt       = 20
