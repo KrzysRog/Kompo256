@@ -11,7 +11,7 @@ playerh     equ 10
 ballh       equ 6
 player0x    equ 200
 player1x    equ 100
-
+player2x    equ 150
 player3x    equ 50
 playermask  equ 7
 
@@ -50,7 +50,7 @@ bloop
             mva #$2a SDMCTL
 
             mva #player0x HPOSP0
-            mva #player1x HPOSP1
+            ;mva #player1x HPOSP1
 
             mva #player3x HPOSP3
 
@@ -78,6 +78,17 @@ reset_ball_position
 
 
 begin
+            lda CONSOL
+            cmp #7
+            beq skip_CONSOL
+            sta gamemode
+skip_CONSOL
+
+            lda #player1x
+            sta HPOSP1
+            lda #player2x
+            sta HPOSP2
+
             sta HITCLR
             lda:cmp:req 20
 
@@ -126,7 +137,16 @@ m_cleanup_loop
             sta HPOSM0
 
 ;rysuj paletkę
-            ldy #0
+
+            ldy #1
+player_paddle_loop
+
+;uzupełnij adresy pamięci dla "sta"
+            lda player_mem_start,y
+            sta cleanlp+2
+            sta playerlp+2
+            sta playerlp+5
+
             lda PADDL0,y
             lsr @
             cmp playery0,y
@@ -135,8 +155,8 @@ m_cleanup_loop
 
 ;wyczyść pamięć player0 i player1
             ldx #0
-            lda #0
-cleanlp     sta pmb256+PMADR_2LINE_PLAYER0,x
+            lda player_erase,y
+cleanlp     sta pmb256+PMADR_2LINE_PLAYER0,x    ;$8200 -> $00,$82
             ;sta pmb256+PMADR_2LINE_PLAYER1,x
             dex
             bne cleanlp
@@ -149,10 +169,25 @@ skip_mem_cleanup_p0
             lda #playerh
             sta tmp
             lda #playermask
-player0lp   sta pmb256+PMADR_2LINE_PLAYER0,x
-            sta pmb256+PMADR_2LINE_PLAYER1,x
+playerlp    sta pmb256+PMADR_2LINE_PLAYER0,x    ;$8200 -> $00,$82
+            sta pmb256+PMADR_2LINE_PLAYER1,x    ;$8280 -> $80,$82
             inx
             dec tmp
-            bpl player0lp
+            bpl playerlp
+
+            dey
+            bpl player_paddle_loop
 
             jmp begin
+
+player_mem_start
+            dta $82,$83
+
+;pamięć graczy
+;PL0 - $8200
+;PL1 - $8280
+;PL2 - $8300
+;PL3 - $8380
+
+player_erase
+            dta 0,0
