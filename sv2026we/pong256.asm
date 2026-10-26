@@ -27,6 +27,7 @@ tmp        equ gamemode+1
 ;rysuj boisko
 
 ;skasuj lewy margines
+;TODO
             lda #0
             sta COLCRS
             lda #23
@@ -45,8 +46,10 @@ bloop
 
 ;inicjalizuj PMG
             mva #pmb PMBASE
-            mva #1 GPRIOR
             mva #3 GRACTL
+            lsr @
+            sta GPRIOR
+            ;mva #1 GPRIOR
             mva #$2a SDMCTL
 
             mva #player0x HPOSP0
@@ -56,20 +59,20 @@ bloop
 
 
 ;na razie stała ściana po lewej stronie player3
-            lda #playermask
-            ldy #$80
-scianalp
-            sta pmb256+PMADR_2LINE_PLAYER3,y
-            dey
-            bpl scianalp
+            ;lda #playermask
+            ;ldy #$80
+;scianalp
+            ;sta pmb256+PMADR_2LINE_PLAYER3,y
+            ;dey
+            ;bpl scianalp
 
 ;inicjalizacja piłki
 
 reset_ball_position
-            lda #70
+            lda #100
             sta ballx
             sta bally
-            lda #0
+            lda #1
             sta vecx
             lda #1
             sta vecy
@@ -81,25 +84,44 @@ begin
             lda CONSOL
             cmp #7
             beq skip_CONSOL
-            sta gamemode
-skip_CONSOL
-
-            lda #player1x
+            pha
+            ;sta gamemode
+;opcja dwóch graczy
+            and #2
+            tay
+            lda playersx,y
             sta HPOSP1
-            lda #player2x
+            lda playersx+1,y
             sta HPOSP2
+            ;lda #0
+
+;jeden gracz
+            pla
+            and #1
+            tay
+            lda player1_mask,y
+            sta player_erase+1
+            sta playery1
+
+skip_CONSOL
 
             sta HITCLR
             lda:cmp:req 20
 
 
 ;kolizja z graczami
-            lda M0PL
+            ;ldy #1
+            ;lda #4
+            ;sta ldacol+1
+ldacol      lda M0PL
             beq skip_player_collision
             lda vecx
             eor #$ff
             sta vecx
             inc vecx
+            ;asl ldacol+1
+            ;dey
+            ;bpl ldacol
 
 skip_player_collision
             lda M0PF
@@ -113,6 +135,7 @@ skip_field_collision
 ;czyść pociski
             ldy #$80
             lda #0
+            sta 709
 m_cleanup_loop
             sta pmb256+PMADR_2LINE_MISSILES,y
             dey
@@ -128,6 +151,8 @@ m_cleanup_loop
             lda #3
             ldx bally
             sta pmb256+PMADR_2LINE_MISSILES,x
+            
+
 
 ;ruch poziomy piłki
             lda ballx
@@ -135,7 +160,25 @@ m_cleanup_loop
             adc vecx
             sta ballx
             sta HPOSM0
+            bmi check_right_edge
 
+            cmp #PLAYFIELD_LEFT_EDGE_NORMAL
+            bpl still_playing
+            ;jsr bell
+            jmp reset_ball_position
+            ;cmp #PLAYFIELD_RIGHT_EDGE_NORMAL
+            ;bpl still_playing
+            ;jsr bell
+            ;jmp reset_ball_position
+
+check_right_edge
+            cmp #PLAYFIELD_RIGHT_EDGE_NORMAL
+            bmi still_playing
+            
+            ;jsr bell
+            jmp reset_ball_position
+
+still_playing
 ;rysuj paletkę
 
             ldy #1
@@ -153,7 +196,7 @@ player_paddle_loop
             pha
             beq skip_mem_cleanup_p0
 
-;wyczyść pamięć player0 i player1
+;wyczyść pamięć playern i playern+1
             ldx #0
             lda player_erase,y
 cleanlp     sta pmb256+PMADR_2LINE_PLAYER0,x    ;$8200 -> $00,$82
@@ -188,6 +231,10 @@ player_mem_start
 ;PL1 - $8280
 ;PL2 - $8300
 ;PL3 - $8380
+player1_mask
+            dta playermask,0
+playersx
+            dta player1x,player2x ;0,0
 
-player_erase
-            dta 0,0
+player_erase    equ playersx+4
+            ;dta 0,0
