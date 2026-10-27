@@ -14,6 +14,7 @@ player1x    equ 100
 player2x    equ 150
 player3x    equ 50
 playermask  equ 7
+score_pos   equ 17
 
 ;pamięć
 playery0    equ $80
@@ -26,56 +27,51 @@ gamemode    equ vecy+1
 tmp        equ gamemode+1
 ;rysuj boisko
 
-;skasuj lewy margines
 ;TODO
-            lda #0
-            sta COLCRS
-            lda #23
-            sta ROWCRS
+            ;lda #0
+            ;sta COLCRS
+            ;lda #23
+            ;sta ROWCRS
 
-            jsr convrt
-
-            ldy #39
-            lda #$80
-
-bloop
+            ;jsr convrt
+            rol 710
+            ;ldy #39
+            lda #INTERNAL_0
+            ldy #score_pos
             sta (88),y
-            sta (LOGCOL),y
-            dey
-            bpl bloop
+            iny
+            iny
+            sta(88),y
+            ;lda #pmb
+
+;bloop
+            ;sta (88),y
+            ;sta (LOGCOL),y
+            ;sta $9c40-1+24*40-39,y
+            ;dey
+            ;bpl bloop
 
 ;inicjalizuj PMG
-            mva #pmb PMBASE
-            mva #3 GRACTL
-            lsr @
-            sta GPRIOR
+            ;sta PMBASE
             ;mva #1 GPRIOR
             mva #$2a SDMCTL
-
             mva #player0x HPOSP0
             ;mva #player1x HPOSP1
 
             mva #player3x HPOSP3
 
-
-;na razie stała ściana po lewej stronie player3
-            ;lda #playermask
-            ;ldy #$80
-;scianalp
-            ;sta pmb256+PMADR_2LINE_PLAYER3,y
-            ;dey
-            ;bpl scianalp
+            mva #3 GRACTL
+            lsr @
+            sta GPRIOR
 
 ;inicjalizacja piłki
+            sta vecx
+            sta vecy
 
 reset_ball_position
             lda #100
             sta ballx
             sta bally
-            lda #1
-            sta vecx
-            lda #1
-            sta vecy
 
             ;sta pmb256+PMADR_2LINE_MISSILES+70
 
@@ -124,18 +120,23 @@ ldacol      lda M0PL
             ;bpl ldacol
 
 skip_player_collision
-            lda M0PF
-            beq skip_field_collision
-            lda vecy
-            eor #$ff
-            sta vecy
-            inc vecy
+            lda bally
+            ldx vecy
+            cmp #PM_2LINE_NORMAL_TOP
+            bpl not_in_top
+            ldx #1
+not_in_top
+            cmp #PM_2LINE_NORMAL_BOTTOM
+            bmi not_in_bottom
+            ldx #$ff
+not_in_bottom
+            stx vecy
 
-skip_field_collision
-;czyść pociski
-            ldy #$80
+;czyść pociski - TODO - dać to wcześniej, a odbicie i rysowanie zrobić jedno po drugim
+            ldy #$80    ;pmb
+            sty PMBASE
             lda #0
-            sta 709
+            ;sta 709
 m_cleanup_loop
             sta pmb256+PMADR_2LINE_MISSILES,y
             dey
@@ -148,35 +149,43 @@ m_cleanup_loop
             sta bally
 
 ;rysuj piłkę
+            tax
             lda #3
-            ldx bally
+            ;ldx bally
             sta pmb256+PMADR_2LINE_MISSILES,x
             
 
 
 ;ruch poziomy piłki
+            ldy #score_pos+2
             lda ballx
             clc
             adc vecx
             sta ballx
             sta HPOSM0
-            bmi check_right_edge
-
+            bpl left_edge_positive
+            eor #$ff
+            dey
+            dey
+left_edge_positive
             cmp #PLAYFIELD_LEFT_EDGE_NORMAL
             bpl still_playing
             ;jsr bell
+            lda (88),y
+            adc #1
+            sta (88),y
             jmp reset_ball_position
             ;cmp #PLAYFIELD_RIGHT_EDGE_NORMAL
             ;bpl still_playing
             ;jsr bell
             ;jmp reset_ball_position
 
-check_right_edge
-            cmp #PLAYFIELD_RIGHT_EDGE_NORMAL
-            bmi still_playing
+;check_right_edge
+            ;cmp #PLAYFIELD_RIGHT_EDGE_NORMAL
+            ;bmi still_playing
             
             ;jsr bell
-            jmp reset_ball_position
+            ;jmp reset_ball_position
 
 still_playing
 ;rysuj paletkę
