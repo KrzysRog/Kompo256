@@ -23,43 +23,23 @@ ballx       equ playery1+1
 bally       equ ballx+1
 vecx        equ bally+1
 vecy        equ vecx+1
-gamemode    equ vecy+1
-tmp        equ gamemode+1
-;rysuj boisko
+tmp         equ vecy+1
+p0pmb       equ tmp+1
+p1pmb       equ p0pmb+2
 
-;TODO
-            ;lda #0
-            ;sta COLCRS
-            ;lda #23
-            ;sta ROWCRS
 
-            ;jsr convrt
             rol 710
-            ;ldy #39
             lda #INTERNAL_0
             ldy #score_pos
             sta (88),y
             iny
             iny
             sta(88),y
-            ;lda #pmb
-
-;bloop
-            ;sta (88),y
-            ;sta (LOGCOL),y
-            ;sta $9c40-1+24*40-39,y
-            ;dey
-            ;bpl bloop
 
 ;inicjalizuj PMG
-            ;sta PMBASE
-            ;mva #1 GPRIOR
             mva #$2a SDMCTL
             mva #player0x HPOSP0
-            ;mva #player1x HPOSP1
-
             mva #player3x HPOSP3
-
             mva #3 GRACTL
             lsr @
             sta GPRIOR
@@ -73,15 +53,13 @@ reset_ball_position
             sta ballx
             sta bally
 
-            ;sta pmb256+PMADR_2LINE_MISSILES+70
-
-
 begin
+;TODO - reset wyniku przy fire
             lda CONSOL
             cmp #7
             beq skip_CONSOL
             pha
-            ;sta gamemode
+
 ;opcja dwóch graczy
             and #2
             tay
@@ -89,7 +67,6 @@ begin
             sta HPOSP1
             lda playersx+1,y
             sta HPOSP2
-            ;lda #0
 
 ;jeden gracz
             pla
@@ -105,19 +82,12 @@ skip_CONSOL
             lda:cmp:req 20
 
 
-;kolizja z graczami
-            ;ldy #1
-            ;lda #4
-            ;sta ldacol+1
 ldacol      lda M0PL
             beq skip_player_collision
             lda vecx
             eor #$ff
             sta vecx
             inc vecx
-            ;asl ldacol+1
-            ;dey
-            ;bpl ldacol
 
 skip_player_collision
             lda bally
@@ -175,59 +145,50 @@ left_edge_positive
             adc #1
             sta (88),y
             jmp reset_ball_position
-            ;cmp #PLAYFIELD_RIGHT_EDGE_NORMAL
-            ;bpl still_playing
-            ;jsr bell
-            ;jmp reset_ball_position
-
-;check_right_edge
-            ;cmp #PLAYFIELD_RIGHT_EDGE_NORMAL
-            ;bmi still_playing
-            
-            ;jsr bell
-            ;jmp reset_ball_position
 
 still_playing
 ;rysuj paletkę
 
-            ldy #1
+;TODO - główna pętla po x zamiast y
+            ldx #1
 player_paddle_loop
 
 ;uzupełnij adresy pamięci dla "sta"
-            lda player_mem_start,y
+            lda player_mem_start,x
             sta cleanlp+2
             sta playerlp+2
             sta playerlp+5
 
-            lda PADDL0,y
+            lda PADDL0,x
             lsr @
-            cmp playery0,y
+            cmp playery0,x
             pha
             beq skip_mem_cleanup_p0
 
 ;wyczyść pamięć playern i playern+1
-            ldx #0
-            lda player_erase,y
-cleanlp     sta pmb256+PMADR_2LINE_PLAYER0,x    ;$8200 -> $00,$82
+            ldy #0
+            lda player_erase,x
+;TODO - adresowanie przez zerową
+cleanlp     sta pmb256+PMADR_2LINE_PLAYER0,y    ;$8200 -> $00,$82
             ;sta pmb256+PMADR_2LINE_PLAYER1,x
-            dex
+            dey
             bne cleanlp
 
 skip_mem_cleanup_p0
             pla
-            sta playery0,y
-            tax
-            ;ldx #100
+            sta playery0,x
+            tay
             lda #playerh
             sta tmp
             lda #playermask
-playerlp    sta pmb256+PMADR_2LINE_PLAYER0,x    ;$8200 -> $00,$82
-            sta pmb256+PMADR_2LINE_PLAYER1,x    ;$8280 -> $80,$82
-            inx
+;TODO - adresowanie przez zerową
+playerlp    sta pmb256+PMADR_2LINE_PLAYER0,y    ;$8200 -> $00,$82
+            sta pmb256+PMADR_2LINE_PLAYER1,y    ;$8280 -> $80,$82
+            iny
             dec tmp
             bpl playerlp
 
-            dey
+            dex
             bpl player_paddle_loop
 
             jmp begin
