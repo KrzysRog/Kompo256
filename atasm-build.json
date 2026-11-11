@@ -2,7 +2,7 @@
 	"comment": "Altirra configuration file.",
 
 	"_1": "Which asm file is to be compiled?",
-	"input": "sv2026se/robotron256.asm",
+	"input": "sv2026we/pong256.asm",
 
 	"_2": "Array of folders that will be searched when files are .include(d)",
 	"includes": [],
