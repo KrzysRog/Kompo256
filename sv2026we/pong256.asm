@@ -6,15 +6,14 @@
 
 ;stałe
 pmb         equ $80
-pmb256      equ $8000
-playerh     equ 10
-ballh       equ 6
-player0x    equ 200
-player1x    equ 100
-player2x    equ 150
-player3x    equ 50
-playermask  equ 7
-score_pos   equ 17
+pmb256      equ pmb*$100
+playerh     equ 7
+playermask  equ playerh
+player0x    equ PLAYFIELD_RIGHT_EDGE_NORMAL-12
+player3x    equ PLAYFIELD_LEFT_EDGE_NORMAL
+player1x    equ player3x+(player0x-player3x)/3
+player2x    equ player3x+(player0x-player3x)*2/3
+score_pos   equ INTERNAL_0
 
 ;pamięć
 playery0    equ $80
@@ -26,36 +25,45 @@ vecy        equ vecx+1
 tmp         equ vecy+1
 p0pmb       equ tmp+1
 p1pmb       equ p0pmb+2
+player_erase    equ p1pmb+4 ;nie rozumiem dlaczego p1pmb+2 daje nieprawidłową maskę
 
-
-            rol 710
+            asl 710
+game_init
             lda #INTERNAL_0
-            ldy #score_pos
+            ;ldy #score_pos
+            ;pozioma pozycja wyniku taka jak kod wewnętrzny "0"
+            tay
             sta (88),y
             iny
             iny
-            sta(88),y
+            sta (88),y
 
 ;inicjalizuj PMG
             mva #$2a SDMCTL
-            mva #player0x HPOSP0
+            sta 712
             mva #player3x HPOSP3
+            mva #player0x HPOSP0
             mva #3 GRACTL
-            lsr @
+            lsr @       ;A:=1
             sta GPRIOR
 
-;inicjalizacja piłki
+;inicjalizacja piłki - wektor [+1,+1]
             sta vecx
             sta vecy
 
 reset_ball_position
+            jsr bell
             lda #100
             sta ballx
             sta bally
 
-begin
-;TODO - reset wyniku przy fire
+gameloop
+;reset wyniku przy fire
+            lda PTRIG0
+            beq game_init
+
             lda CONSOL
+            and #7  ;potrzebny bo zaburza go dźwięk click
             cmp #7
             beq skip_CONSOL
             pha
@@ -77,47 +85,47 @@ begin
             sta playery1
 
 skip_CONSOL
-
             sta HITCLR
             lda:cmp:req 20
 
 
-ldacol      lda M0PL
+;czyść pociski
+            ldy #$80    ;pmb
+            sty PMBASE
+            sty p1pmb   ;pół strony offsetu dla player1
+            lda #0
+m_cleanup_loop
+            sta pmb256+PMADR_2LINE_MISSILES,y
+            dey
+            bpl m_cleanup_loop
+
+;kolizja z paletką gracza
+            lda M0PL
             beq skip_player_collision
             lda vecx
             eor #$ff
             sta vecx
             inc vecx
+            jsr keyclk
 
 skip_player_collision
             lda bally
             ldx vecy
             cmp #PM_2LINE_NORMAL_TOP
             bpl not_in_top
-            ldx #1
+            ldx #1  ;piłka w dół bo jest za wysoko
 not_in_top
             cmp #PM_2LINE_NORMAL_BOTTOM
             bmi not_in_bottom
-            ldx #$ff
+            ldx #$ff ;piłka w górę
 not_in_bottom
             stx vecy
 
-;czyść pociski - TODO - dać to wcześniej, a odbicie i rysowanie zrobić jedno po drugim
-            ldy #$80    ;pmb
-            sty PMBASE
-            lda #0
-            ;sta 709
-m_cleanup_loop
-            sta pmb256+PMADR_2LINE_MISSILES,y
-            dey
-            bpl m_cleanup_loop
-
 ;ruch pionowy piłki
-            lda bally
+            ;lda bally - A=bally
             clc
             adc vecy
             sta bally
-
 ;rysuj piłkę
             tax
             lda #3
@@ -135,29 +143,25 @@ m_cleanup_loop
             sta HPOSM0
             bpl left_edge_positive
             eor #$ff
-            dey
+            dey     ;punkt dla tego po lewej, bo piłka wyszła poza prawą krawędź
             dey
 left_edge_positive
             cmp #PLAYFIELD_LEFT_EDGE_NORMAL
             bpl still_playing
-            ;jsr bell
             lda (88),y
             adc #1
             sta (88),y
             jmp reset_ball_position
 
 still_playing
-;rysuj paletkę
-
-;TODO - główna pętla po x zamiast y
+;pętla paletek
             ldx #1
 player_paddle_loop
-
-;uzupełnij adresy pamięci dla "sta"
-            lda player_mem_start,x
-            sta cleanlp+2
-            sta playerlp+2
-            sta playerlp+5
+            txa
+            clc
+            adc #$82    ;początek pamięci player0 albo player2
+            sta p0pmb+1
+            sta p1pmb+1
 
             lda PADDL0,x
             lsr @
@@ -165,12 +169,10 @@ player_paddle_loop
             pha
             beq skip_mem_cleanup_p0
 
-;wyczyść pamięć playern i playern+1
+;wyczyść pamięć playern i playern+1 - czyści 255B
             ldy #0
             lda player_erase,x
-;TODO - adresowanie przez zerową
-cleanlp     sta pmb256+PMADR_2LINE_PLAYER0,y    ;$8200 -> $00,$82
-            ;sta pmb256+PMADR_2LINE_PLAYER1,x
+cleanlp     sta (p0pmb),y    ;$8200 -> $00,$82
             dey
             bne cleanlp
 
@@ -180,10 +182,9 @@ skip_mem_cleanup_p0
             tay
             lda #playerh
             sta tmp
-            lda #playermask
-;TODO - adresowanie przez zerową
-playerlp    sta pmb256+PMADR_2LINE_PLAYER0,y    ;$8200 -> $00,$82
-            sta pmb256+PMADR_2LINE_PLAYER1,y    ;$8280 -> $80,$82
+            ;lda #playermask
+playerlp    sta (p0pmb),y    ;$8200 -> $00,$82
+            sta (p1pmb),y    ;$8280 -> $80,$82
             iny
             dec tmp
             bpl playerlp
@@ -191,10 +192,7 @@ playerlp    sta pmb256+PMADR_2LINE_PLAYER0,y    ;$8200 -> $00,$82
             dex
             bpl player_paddle_loop
 
-            jmp begin
-
-player_mem_start
-            dta $82,$83
+            jmp gameloop
 
 ;pamięć graczy
 ;PL0 - $8200
@@ -204,7 +202,7 @@ player_mem_start
 player1_mask
             dta playermask,0
 playersx
-            dta player1x,player2x ;0,0
+            dta player1x,player2x ;0,0 - używa dodatkowych zer do schowania paletek, jeśli gra 1 gracz
 
-player_erase    equ playersx+4
+;player_erase    equ playersx+4
             ;dta 0,0
